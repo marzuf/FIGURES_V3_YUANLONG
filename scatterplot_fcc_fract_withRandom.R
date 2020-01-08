@@ -40,7 +40,7 @@ legTitle <- "FCC ranges:"
 fractBarSubTitle <- "AUC ratios:\n"
 fractBarTitle <- "Fold-change concordance scores"
 
-auc_ratio_file <- file.path("../FIGURES_V2_YUANLONG/BARPLOT_FCC_AUC_RATIO", "all_dt.Rdata")
+auc_ratio_file <- file.path("BARPLOT_FCC_AUC_RATIO", "all_dt.Rdata")
 stopifnot(file.exists(auc_ratio_file))
 
 rd_fcc_folder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT")
@@ -93,8 +93,8 @@ if(buildData){
 ######################################################################################
 
 
-auc_fract_dt <- get(load("SCATTERPLOT_FCC_FRACT_WITHRANDOM/all_dt.Rdata"))
-auc_ratio_dt <- get(load("../FIGURES_V2_YUANLONG/BARPLOT_FCC_AUC_RATIO//all_dt.Rdata"))
+# auc_fract_dt <- get(load("SCATTERPLOT_FCC_FRACT_WITHRANDOM/all_dt.Rdata"))
+# auc_ratio_dt <- get(load("BARPLOT_FCC_AUC_RATIO//all_dt.Rdata"))
 
 auc_fract_dt <- get(load(auc_fract_file))
 auc_ratio_dt <- get(load(auc_ratio_file))
