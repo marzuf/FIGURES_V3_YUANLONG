@@ -193,7 +193,7 @@ if(buildData) {
   cat(paste0("... written: ", outFile, "\n"))
   
 } else {
-  outFile <- file.path(outFolder, "all_permut_fcc.Rdata")
+outFile <- file.path(outFolder, "all_permut_fcc.Rdata")
   all_permut_fcc <- get(load(outFile))
 }
 
@@ -389,6 +389,19 @@ for(rd_type in all_rd_types) {
   cat(paste0("... written: ", outFile, "\n"))
   
   
+  # save the lm curves to be able to re-draw the curves
+  # -> for each of the ranges, fit lm
+  
+  
+  rd_fccRange = fcc_fract_names[1]
+  rd_lm_intervalFCC <- foreach(rd_fccRange = fcc_fract_names) %dopar% {
+    sub_dt <- rd_auc_fcc_ratio_fract_dt[as.character(rd_auc_fcc_ratio_fract_dt$rd_intervalFCC) == rd_fccRange,]
+    lm(sub_dt$rd_countFCC ~ sub_dt$ds_rank)
+  }
+  names(rd_lm_intervalFCC) <- fcc_fract_names
+  outFile <- file.path(outFolder, paste0("rd", rd_type, "_lm_intervalFCC.Rdata"))
+  save(rd_lm_intervalFCC, file = outFile, version=2)
+  cat(paste0("... written: ", outFile, "\n"))
   
 }
 
