@@ -26,9 +26,6 @@ buildData <- TRUE
 ggsci_pal <- "d3"
 ggsci_subpal <- ""
 
-geneSignifThresh <- 0.05
-tadSignifThresh <- 0.01
-
 plotMargin <- c(1,2,1,1)
 
 
@@ -215,7 +212,7 @@ signif_fract_plot_lab <- signif_fract_plot_tmp +
   theme(    axis.text.x = element_text(color=mycols_ntot, hjust=1,vjust = 0.5, size=7, angle=90, family=fontFamily) )
   
 
-outFile <- file.path(outFolder, paste0("all_ds_fract_signif_genes_withLabs_barplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_fract_signif_genes_withLabs_geneSignif",geneSignifThresh, "_tadSignif", tadSignifThresh, "_barplot.", plotType))
 ggsave(plot = signif_fract_plot_lab, filename = outFile, height=myHeightGG*1.5, width = myWidthGG*2)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -225,7 +222,7 @@ signif_fract_plot_symb <- signif_fract_plot_tmp +
   theme(    axis.text.x = element_text(color=mycols_ntot, hjust=0.5,vjust = 0.5, size=7, angle=90, family=fontFamily) )
   
   
-outFile <- file.path(outFolder, paste0("all_ds_fract_signif_genes_withSymb_barplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_fract_signif_genes_withSymb_geneSignif",geneSignifThresh, "_tadSignif", tadSignifThresh, "_barplot.", plotType))
 ggsave(plot = signif_fract_plot_symb, filename = outFile, height=myHeightGG, width = myWidthGG*2)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -265,10 +262,10 @@ signif_nbr_plot_tmp <- ggplot(plot_dt, aes(x=dataset, y=value, fill=variable, co
     plot.title = element_text(hjust = 0.5, face = "bold", size=16, family=fontFamily),
     plot.subtitle = element_text(hjust = 0, vjust=2,face = "italic", size =8, family=fontFamily, lineheight = 1.75),
     panel.grid = element_blank(),
-    # panel.grid.major.y = element_line(colour = "grey"),
-    # panel.grid.minor.y = element_line(colour = "grey"),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey"),
+    panel.grid.minor.y = element_line(colour = "grey"),
+    # panel.grid.major.y = element_blank(),
+    # panel.grid.minor.y = element_blank(),
     axis.line.x = element_line(size = .2, color = "black"),
     axis.line.y = element_line(size = .2, color = "black"),
     axis.text.y = element_text(color="black", hjust=1,vjust = 0.5, size=12, family=fontFamily),
@@ -300,7 +297,7 @@ signif_nbr_plot_withLabs <- signif_nbr_plot_tmp +
   scale_x_discrete(name=paste0("(all datasets - n=", nDS, ")")) +
   theme(    axis.text.x = element_text(color=mycols_ntot, hjust=1,vjust = 0.5, size=7, angle=90, family=fontFamily) )
 
-outFile <- file.path(outFolder, paste0("all_ds_nbr_signif_genes_withLabs_barplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_nbr_signif_genes_withLabs_geneSignif",geneSignifThresh, "_tadSignif", tadSignifThresh, "_barplot.", plotType))
 ggsave(plot = signif_nbr_plot_withLabs, filename = outFile, height=myHeightGG*1.5, width = myWidthGG*2)
 cat(paste0("... written: ", outFile, "\n"))
 
@@ -309,7 +306,7 @@ signif_nbr_plot_withSymb <- signif_nbr_plot_tmp+
   scale_x_discrete(labels=plot_dt$labSymb, name=paste0("(all datasets - n=", nDS, ")")) +
   theme(    axis.text.x = element_text(color=mycols_ntot, hjust=0.5,vjust = 0.5, size=7, angle=90, family=fontFamily) )
 
-outFile <- file.path(outFolder, paste0("all_ds_nbr_signif_genes_withSymb_barplot.", plotType))
+outFile <- file.path(outFolder, paste0("all_ds_nbr_signif_genes_withSymb_geneSignif",geneSignifThresh, "_tadSignif", tadSignifThresh, "_barplot.", plotType))
 ggsave(plot = signif_nbr_plot_withSymb, filename = outFile, height=myHeightGG, width = myWidthGG*2)
 cat(paste0("... written: ", outFile, "\n"))
 

@@ -36,6 +36,8 @@ ggsci_pal <- "lancet"
 ggsci_subpal <- ""
 
 
+source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
+
 plotType <- "svg"
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 source("../FIGURES_V2_YUANLONG/settings.R")
@@ -197,6 +199,8 @@ outFile <- file.path(outFolder, "all_permut_fcc.Rdata")
   all_permut_fcc <- get(load(outFile))
 }
 
+obs_auc_dt <- get(load("BARPLOT_FCC_AUC_RATIO/all_dt.Rdata"))
+
 
 all_permut_fcc_ul <- unlist(all_permut_fcc, recursive = FALSE)
 
@@ -209,9 +213,11 @@ for(rd_type in all_rd_types) {
   if(rd_type=="") {
     fractBarTitle <- paste0(fractBarTitle_main, " (RandL)")
     scatterTit <- paste0("PERMUT DATA (RandL)")
+    cmpTit <- "(RandL)"
   }else {
     fractBarTitle <- paste0(fractBarTitle_main, " (", gsub("_", "", rd_type), ")")  
-    scatterTit <- paste0("PERMUT DATA (", rd_type, ")")
+    scatterTit <- paste0("PERMUT DATA (", gsub("_", "", rd_type), ")")
+    cmpTit <- paste0("(", gsub("_", "", rd_type), ")")
   }
   
   
@@ -258,6 +264,40 @@ for(rd_type in all_rd_types) {
   
   rd_auc_fcc_ratio_fract_dt$rd_intervalFCC <- factor(rd_auc_fcc_ratio_fract_dt$rd_intervalFCC, levels = rev(fcc_fract_names))
   stopifnot(!is.na(rd_auc_fcc_ratio_fract_dt$rd_intervalFCC))
+  
+  ############################################################### 
+  ############################################################### cmp FCC AUC ranking
+  ############################################################### 
+  
+  cmp_dt <- merge(rd_auc_fcc_ratio_dt, obs_auc_dt, by=c("hicds", "exprds"))
+  
+  cmp_dt$dotCols <- all_cols[all_cmps[paste0(cmp_dt$exprds)]]
+  
+  outFile <- file.path(outFolder, paste0("rd", rd_type, "_rd_vs_obs_scatterplot.", plotType))
+  do.call(plotType, list(outFile, height=myHeight, width=myWidth))
+  par(bty="l")
+  plot(
+    x = cmp_dt$fcc_auc,
+    y = cmp_dt$rd_fcc_auc,
+    pch = 16,
+    cex = 1,
+    main = "Permut. vs. obs. FCC AUC ratios",
+    xlab = "Obs. FCC AUC ratio",
+    ylab = "Permut FCC AUC ratio",
+    col = cmp_dt$dotCols
+  )
+  mtext(side = 3, text = cmpTit)
+  legend(
+    "topright",
+    legend = legDT$legLabel,
+    col = as.character(legDT$cmpColor),
+    pch=16,
+    bty="n"
+  )
+  addCorr(legPos = "bottomleft", x= cmp_dt$fcc_auc, y = cmp_dt$rd_fcc_auc, bty="n")
+  abline(lm(cmp_dt$rd_fcc_auc~cmp_dt$fcc_auc), lty=2, col="grey")
+  foo <- dev.off()
+  cat(paste0("... written: ", outFile, "\n"))
   
   ############################################################### 
   ############################################################### BARPLOT

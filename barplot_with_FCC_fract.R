@@ -240,7 +240,7 @@ scatPlot_tmp <- ggscatter(auc_fract_ratio_dt,
                       x = "ds_rank", 
                       y = "countFCC",
                       color = "intervalFCC",
-                      xlab = "Datasets (ranked by FCC AUC ratio)",
+                      xlab = "Datasets (ranked by decreasing FCC AUC ratio)",
                       ylab = "Ratio of TADs",
                       palette = myPals) +
   labs(color=legTitle)+
@@ -296,12 +296,15 @@ outFile <- file.path(outFolder, paste0("all_ds_fcc_fract_scores_nbrSignifs_auc_s
 ggsave(plot = scatPlot, filename = outFile, height=myHeightGG, width = myWidthGG*1.8)
 cat(paste0("... written: ", outFile, "\n"))
 
+xax_exp <- 0.01
+
+
 scatPlot_withLabs  <- scatPlot_tmp + 
   
   scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
   
   scale_x_continuous(labels = ds_auc_order, breaks=xbreaks, expand=c(xax_exp,xax_exp))+
-  theme(axis.text.x = element_text(color=mycols_scat, hjust=1,vjust = 0.5, size=7, family=fontFamily, angle=90))
+  theme(axis.text.x = element_text(color=mycols_scat, hjust=1,vjust = 0.5, size=4, family=fontFamily, angle=90))
 
 outFile <- file.path(outFolder, paste0("all_ds_fcc_fract_scores_nbrSignifs_auc_scatterplot_xcont_withLabs.", plotType))
 ggsave(plot = scatPlot_withLabs, filename = outFile, height=myHeightGG, width = myWidthGG*1.5)

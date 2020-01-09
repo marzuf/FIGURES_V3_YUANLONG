@@ -121,17 +121,24 @@ maxRank <- max(plot_dt$rank)
 nDS <- length(unique(auc_ds_order))
 
 myPals <-  eval(parse(text=paste0("pal_", ggsci_pal, "(", ggsci_subpal, ")")))(length(unique(fcc_fract_names)))
+myPals <- rev(myPals)
+
+my_xlab <- "Datasets (ranked by decreasing FCC AUC ratio)"
 
 my_ylab <- "Fract. of TADs"
-
-plotTit <- paste0("all datasets (n=", nDS, ")")
-
 
 
 all_rd_types <- c("", "_meanRL")
 rd_type=all_rd_types[1]
 
 for(rd_type in all_rd_types) {
+  
+  if(rd_type == "") {
+    plotTit <- paste0("all datasets (n=", nDS, ") (RandL)")  
+  } else {
+    plotTit <- paste0("all datasets (n=", nDS, ") (", gsub("_", "", rd_type),")")  
+  }
+  
   
   
   rdFile <- file.path(rd_fcc_folder, paste0("rd", rd_type, "_lm_intervalFCC.Rdata"))
@@ -158,7 +165,7 @@ for(rd_type in all_rd_types) {
   plot(NULL,
        xlim=c(1, maxRank),
        ylim = c(y_min, y_max),
-       xlab = paste0(""),
+       xlab = paste0(my_xlab),
        ylab = paste0(my_ylab),
        axes = FALSE,
        main = plotTit,
@@ -169,6 +176,7 @@ for(rd_type in all_rd_types) {
   box(bty="L")
   
   axis(2, at = seq(0, y_max + 0.05, by=0.05) , lwd=0, lwd.ticks=1)
+  axis(1, at = seq(1, maxRank, by=1) , lwd=0, labels=F,lwd.ticks=1, tck=-0.01)
   
   # axis(1, at = 1:maxRank,
   #     labels = rep("", maxRank)
@@ -179,7 +187,7 @@ for(rd_type in all_rd_types) {
   # )
   
   
-  i_fract = 3
+  i_fract = 8
   for(i_fract in 1:length(fcc_fract_names)) {
     
     dotCol <- myPals[i_fract]
@@ -208,26 +216,42 @@ for(rd_type in all_rd_types) {
     
   } # end-for iterating FCC fract
 
+  # blackcol_leg <- (255 - 0.7*(255-c(col2rgb("black"))))/255
+  blackcol_leg <- "black"
+  # legend(
+  #   # "topleft",
+  #   "top",
+  #   # inset = c(-0.05, -0.05),
+  #   inset = c(-0.0, -0.06),
+  #   xpd = TRUE,
+  #   # horiz = TRUE,
+  #   pch=dotPch,
+  #   ncol = length(fcc_fract_names)/2,
+  #   legend=c(rev(levels(plot_dt$intervalFCC))),
+  #   lty=1,
+  #   lwd = 2,
+  #   col = rev(myPals),
+  #   bty="n"
+  # )
   legend(
     # "topleft",
     "top",
     # inset = c(-0.05, -0.05),
-    inset = c(-0.0, -0.06),
+    inset = c(-0.0, -0.08),
     xpd = TRUE,
     # horiz = TRUE,
-    pch=dotPch,
-    ncol = length(fcc_fract_names)/2,
-    legend=c(levels(plot_dt$intervalFCC)),
-    lty=1,
-    lwd = 2,
-    col = myPals,
+    pch=c(rep(dotPch, length(fcc_fract_names)), -1, -1),
+    ncol = (length(fcc_fract_names)/2+1),
+    legend=c(rev(levels(plot_dt$intervalFCC)), "fit permut.", "fit obs."),
+    lty=c(rep(1, length(fcc_fract_names)), 1, 2),
+    lwd = c(rep(2, length(fcc_fract_names)), 5, 1),
+    col = c(rev(myPals), blackcol_leg, blackcol_leg),
     bty="n"
   )
-  
   scatP <- recordPlot()
 
   # mtext(1, text = auc_ds_order, col = auc_ds_cols, at=1:maxRank, las=2, cex=0.4, line=0.8)
-  mtext(1, text = auc_ds_order, col = auc_ds_cols, at=1:maxRank, las=2, cex=0.4)
+  mtext(1, text = auc_ds_order, col = auc_ds_cols, at=1:maxRank, las=2, cex=0.4, adj=0, line=0.8)
   
   
   invisible(dev.off())

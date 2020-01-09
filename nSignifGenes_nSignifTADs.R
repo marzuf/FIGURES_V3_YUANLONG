@@ -17,8 +17,6 @@ dotpch <- 19
 segcol <- "grey"
 dotCex <- 1.1
 
-geneSignifThresh <- 0.05
-tadSignifThresh <- 0.01
 
 inDT <- get(load("../v2_Yuanlong_Cancer_HiC_data_TAD_DA/GENE_RANK_TAD_RANK/all_gene_tad_signif_dt.Rdata"))
 geneDT <- inDT[,c("hicds", "exprds", "entrezID", "adj.P.Val")]
@@ -45,7 +43,7 @@ maxGenes <- max(ceiling(nSignif_dt$nSignifGenes/1000)*1000)
 nSignif_dt$nSignifTADs_rescaled <- nSignif_dt$nSignifTADs/maxTADs * maxGenes
 nSignif_dt$nSignifGenes_rescaled <- nSignif_dt$nSignifGenes/maxGenes * maxTADs
 
-outFile <- file.path(outFolder, paste0("nSignifGenes_nSignifTADs_all_ds_withSymb.", plotType))
+outFile <- file.path(outFolder, paste0("nSignifGenes_nSignifTADs_all_ds_withSymb_geneSignif",geneSignifThresh, "_tadSignif", tadSignifThresh, ".", plotType))
 do.call(plotType, list(outFile, height=myHeight*1.2, width=myWidth*2))
 dev.control(displaylist="enable")
 par(bty="U", family=fontFamily)
@@ -87,7 +85,7 @@ points(
 )
 
 
-legend("topleft",
+legend("topright",
        legend=c(paste0("gene signif.: p-val <= ", geneSignifThresh),
                 paste0("TAD signif.: p-val <= ", tadSignifThresh)),
        bty="n")
@@ -122,7 +120,7 @@ legend("bottom",
        # legend = paste0(labsymbol, " ", names(all_cols)),
        legend = paste0(names(all_cols)),
        col=all_cols,
-       pch=dotpch,
+       pch=15,
        # lty=c(1,2),
        horiz=TRUE,
        inset=c(0,-0.12),
@@ -140,7 +138,7 @@ cat(paste0("... written: ", outFile, "\n"))
 
 
 
-outFile <- file.path(outFolder, paste0("nSignifGenes_nSignifTADs_all_ds_withLeg.", plotType))
+outFile <- file.path(outFolder, paste0("nSignifGenes_nSignifTADs_all_ds_withLeg_geneSignif",geneSignifThresh, "_tadSignif", tadSignifThresh, ".", plotType))
 do.call(plotType, list(outFile, height=myHeight*1.2, width=myWidth*2.5))
 par(mar = c(5,5,2,5))
 replayPlot(signifPlot) 
