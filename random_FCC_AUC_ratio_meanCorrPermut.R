@@ -9,7 +9,7 @@ startTime <- Sys.time()
 
 cat("> START ", script_name, "\n")
 
-buildData <- FALSE
+buildData <- TRUE
 
 require(flux)
 require(foreach)
@@ -72,6 +72,24 @@ get_fcc <- function(fc_vect) {
   (2* sum(fc_vect < 0)/length(fc_vect) -1) *  (2* sum(abs(fc_vect[fc_vect<0]))/sum(abs(fc_vect)) -1)
 }
 
+get_ratioDown <- function(fc_vect) {
+   sum(fc_vect < 0)/length(fc_vect) 
+}
+
+get_ratioFC <- function(fc_vect) {
+  # (2* sum(all_tad_fc < 0)/length(all_tad_fc) -1) *  (2* sum(abs(all_tad_fc[all_tad_fc<0]))/sum(abs(all_tad_fc)) -1)
+  # diffRatioFC <- (sum(abs(all_tad_fc[all_tad_fc < 0])) - sum(abs(all_tad_fc[all_tad_fc > 0])) ) /sum(abs(all_tad_fc))
+  # ratioDown <- sum(all_tad_fc < 0)/length(all_tad_fc)
+  # stopifnot(ratioDown >=0 & ratioDown <=1)
+  # stopifnot(diffRatioFC >=-1 & diffRatioFC <=1)
+  # prodRatio <- 2*(ratioDown - 0.5) * diffRatioFC
+  # stopifnot(all(prodRatio >= -1 & prodRatio <= 1))
+  sum(abs(fc_vect[fc_vect<0]))/sum(abs(fc_vect))
+}
+
+
+
+
 if(buildData) {
   all_permut_fcc <- foreach(hicds = all_hicds) %do%{
     all_exprds_fcc <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
@@ -112,6 +130,13 @@ if(buildData) {
         
         fcc_mean <- mean(c(fcc_right, fcc_left), na.rm=TRUE)
         
+        ratioDown_right <- get_ratioDown(all_tad_right_fc)
+        ratioFC_right <- get_ratioFC(all_tad_right_fc)
+        
+        ratioDown_left <- get_ratioDown(all_tad_left_fc)
+        ratioFC_left <- get_ratioFC(all_tad_left_fc)
+        
+        
         # all FCC
         tad_entrez <- union(permut_data[[paste0(rd_tad)]][["genes_right"]], permut_data[[paste0(rd_tad)]][["genes_left"]])
         stopifnot(tad_entrez %in% geneList)
@@ -121,13 +146,29 @@ if(buildData) {
         stopifnot(tad_entrez_de %in% de_dt$genes)
         all_tad_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_de]
         fcc_all <- get_fcc(all_tad_fc)
+        
+        ratioDown_all <- get_ratioDown(all_tad_fc)
+        ratioFC_all <- get_ratioFC(all_tad_fc)
+        
         c(
           fcc_all = fcc_all,
-          fcc_meanRL = fcc_mean
+          fcc_meanRL = fcc_mean,
+          
+          ratioDown_right=ratioDown_right,
+          ratioFC_right=ratioFC_right,
+          
+          ratioDown_left=ratioDown_left,
+          ratioFC_left=ratioFC_left,
+          
+          ratioDown_all=ratioDown_all,
+          ratioFC_all=ratioFC_all
         )
       } # end-foreach TAD
       names(ds_all_permut) <- names(permut_data)
-      save(ds_all_permut, file="ds_all_permut.Rdata", version=2)
+      outFile <- file.path(outFolder, hicds , exprds, "ds_all_permut.Rdata")
+      dir.create(dirname(outFile), recursive = TRUE)
+      save(ds_all_permut, file=outFile, version=2)
+      cat(paste0("... written: ", outFile, "\n"))
       # ds_all_permut
       
       

@@ -1,9 +1,9 @@
 
 options(scipen=100)
 
-# Rscript barplot_FCC_AUC_ratio.R
+# Rscript barplot_FCC_AUC_ratio_randommidpos.R
 
-script_name <- "barplot_FCC_AUC_ratio.R"
+script_name <- "barplot_FCC_AUC_ratio_randommidpos.R"
 
 startTime <- Sys.time()
 
@@ -57,8 +57,8 @@ stopifnot(dir.exists(auc_coexprdist_fold))
 pipFolder <- file.path(mainFolder, "PIPELINE", "OUTPUT_FOLDER")
 stopifnot(dir.exists(pipFolder))
 all_hicds <- list.files(pipFolder)
-
-all_hicds <- all_hicds[ ! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)) ]
+# all_hicds <- all_hicds[ ! (grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds)) ]
+all_hicds <- all_hicds[  grepl("RANDOMMIDPOS_", all_hicds) ]
 
 file.path(mainFolder, all_hicds)[!dir.exists(file.path(mainFolder, all_hicds))]
 stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
@@ -66,7 +66,7 @@ stopifnot(dir.exists(file.path(mainFolder, all_hicds)))
 all_exprds <- lapply(all_hicds, function(x) list.files(file.path(pipFolder, x)))
 names(all_exprds) <- all_hicds
 
-outFolder <- "BARPLOT_FCC_AUC_RATIO"
+outFolder <- "BARPLOT_FCC_AUC_RATIO_RANDOMMIDPOS"
 dir.create(outFolder, recursive = TRUE)
 
 all_datasets <- unlist(lapply(1:length(all_exprds), function(x) file.path(names(all_exprds)[x], all_exprds[[x]])))

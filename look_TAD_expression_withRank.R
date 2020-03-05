@@ -21,6 +21,21 @@ log10_offset <- 0.01
 # Rscript look_TAD_expression_withRank.R ENCSR489OCU_NCI-H460_40kb TCGAlusc_norm_lusc chr10_TAD268 # SFTPA
 
 
+
+# ENCSR489OCU_NCI-H460_40kb	TCGAluad_mutKRAS_mutEGFR	chr10_TAD16	AKR1C1,AKR1C2,AKR1C3
+# ENCSR489OCU_NCI-H460_40kb	TCGAluad_mutKRAS_mutEGFR	chr17_TAD162	HOXB2,HOXB3,HOXB4,HOXB5,HOXB6,HOXB7
+# ENCSR489OCU_NCI-H460_40kb	TCGAluad_nonsmoker_smoker	chr10_TAD16	AKR1C1,AKR1C2,AKR1C3
+# ENCSR489OCU_NCI-H460_40kb	TCGAluad_nonsmoker_smoker	chr17_TAD162	HOXB2,HOXB3,HOXB4,HOXB5,HOXB6,HOXB7
+# 
+# ENCSR489OCU_NCI-H460_40kb	TCGAluad_norm_luad	chr11_TAD390	MMP1,MMP12,MMP13
+# 
+# ENCSR489OCU_NCI-H460_40kb	TCGAluad_norm_luad	chr10_TAD268	BEND3P3,SFTPA1,SFTPA2
+# 
+# ENCSR489OCU_NCI-H460_40kb	TCGAlusc_norm_lusc	chr11_TAD390	MMP1,MMP10,MMP12,MMP13,MMP3
+# ENCSR489OCU_NCI-H460_40kb	TCGAlusc_norm_lusc	chr10_TAD268	BEND3P3,SFTPA1,SFTPA2
+
+
+
 hicds="ENCSR489OCU_NCI-H460_40kb"
 exprds="TCGAlusc_norm_lusc"
 tad_to_plot="chr11_TAD390"
@@ -160,11 +175,13 @@ stopifnot(!is.na(withRank_toplot_dt2$symbol_lab))
 
 save(withRank_toplot_dt2, file ="withRank_toplot_dt2.Rdata")
 
+subTit <- paste0(tad_to_plot, " (rank: ", tad_plot_rank, ")")
+
 p_var_boxplot <-  ggplot(withRank_toplot_dt2, aes(x = symbol_lab, y = value_log10, fill = cond)) + 
   # geom_boxplot(notch = TRUE, outlier.shape=NA)+
   geom_jitter(aes(colour = cond), position=position_jitterdodge())+
   geom_boxplot(notch = TRUE, outlier.shape=NA)+
-  ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(tad_to_plot))+
+  ggtitle(paste0(hicds, " - ", exprds), subtitle = paste0(subTit))+
   scale_x_discrete(name=my_xlab)+
   scale_y_continuous(name=paste0(my_ylab),
                      breaks = scales::pretty_breaks(n = 20))+
