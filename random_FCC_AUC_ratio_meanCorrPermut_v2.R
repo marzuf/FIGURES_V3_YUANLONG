@@ -47,9 +47,9 @@ source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 plotType <- "svg"
 
 myHeight <- 7
-myWidth <- 9
+myWidth <- 10
 myHeightGG <- 7
-myWidthGG <- 9
+myWidthGG <- 10
 
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 source("../FIGURES_V2_YUANLONG/settings.R")
@@ -70,6 +70,7 @@ fract_sort <- fcc_fract_names[length(fcc_fract_names)]
 
 
 all_hicds <- list.files(file.path(permutFolder))
+all_hicds <- all_hicds[!(grepl("RANDOM", all_hicds) | grepl("PERMUT", all_hicds))]
 all_exprds <- sapply(all_hicds, function(x) list.files(file.path(permutFolder, x)))
 
 
