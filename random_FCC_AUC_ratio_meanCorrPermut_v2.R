@@ -205,28 +205,41 @@ if(buildData) {
       plot(
         x = 1:nTot_meanRL,
         y= cumsum_obs,
+	    xlab = "TADs ranked by decreasing FCC",
+		ylab = "Cumsum FCC",
         ylim = range(c(cumsum_obs, cumsum_rd)),
-        main=paste0("Cumsum FCC scores obs-permut"),
+        main=paste0("Cumsum FCC scores obs-meanCorr permut meanRL"),
         cex.lab=plotCex,
         cex.main=plotCex,
-        cex.axis=plotCex
+        cex.axis=plotCex,
+        type="l"
       )
       lines(
         x=1:nTot_meanRL,
         y=cumsum_rd,
         col = cumsumCurve_col
       )
-      mtext(side=3, text=paste0("meanCorr permut data"))
+      mtext(side=3, text=paste0(hicds, " - ", exprds))
+		
+	  stopifnot(length(obs_fcc_sorted) == length(rd_fcc_meanRL_sorted))
+		# same number -> sampled around TAD boundaries
+		# (but here I have 1 curve/dataset)
+		# what I could do: merge all curve and take 95-qtile from all permuts
+
       legend(
         "topleft",
-        paste0("# TADs = ", nTot_meanRL),
+        #paste0("# obs. TADs = ",  length(obs_fcc_sorted), "\n# permut. TADs  = ", length(rd_fcc_meanRL_sorted)),
+        paste0("# TADs = ",  length(obs_fcc_sorted)),
         bty="n"
       )
-      legend(
-        "bottomright",
-        paste0("AUC = ", round(auc_ratio_rd_meanRL, 2)),
-        bty="n"
-      )
+        legend(
+          "bottomright",
+          lty=c(-1, 1, 1),
+          legend=c(paste0("AUC ratio = ", round(auc_ratio_rd_meanRL, 2)), "obs.", "permut"),
+          col = c("black", "black", cumsumCurve_col),
+          bty="n"
+        )
+
       foo <- dev.off()
       cat(paste0("... written: ", outFile, "\n"))
       
