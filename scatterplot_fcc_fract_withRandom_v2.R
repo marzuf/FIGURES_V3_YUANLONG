@@ -1,7 +1,5 @@
 
-# Rscript scatterplot_fcc_fract_withRandom.R
-
-stop("--- wrong script ! forgot cumsum !!! \n")
+# Rscript scatterplot_fcc_fract_withRandom_v2.R
 
 require(doMC)
 require(foreach)
@@ -19,7 +17,7 @@ source("../FIGURES_V2_YUANLONG/settings.R")
 
 myWidth <- myWidth * 1.2
 
-outFolder <- "SCATTERPLOT_FCC_FRACT_WITHRANDOM"
+outFolder <- "SCATTERPLOT_FCC_FRACT_WITHRANDOM_V2"
 dir.create(outFolder, recursive = TRUE)
 
 buildData <- TRUE
@@ -45,13 +43,14 @@ fractBarTitle <- "Fold-change concordance scores"
 auc_ratio_file <- file.path("BARPLOT_FCC_AUC_RATIO", "all_dt.Rdata")
 stopifnot(file.exists(auc_ratio_file))
 
-rd_fcc_folder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT")
+rd_fcc_folder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT_V2")
 
 # SETTINGS FOR THE PLOTS
 dotPch <- 19
 dotCex <- 0.7
 mainCex <- 1.2
 rd_opc <- 0.3
+
 
 
 if(buildData){
@@ -131,6 +130,7 @@ my_ylab <- "Fract. of TADs"
 
 
 all_rd_types <- c("", "_meanRL")
+all_rd_types <- c("_meanRL")
 rd_type=all_rd_types[1]
 
 for(rd_type in all_rd_types) {

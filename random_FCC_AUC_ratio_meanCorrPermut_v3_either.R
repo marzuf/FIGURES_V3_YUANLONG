@@ -1,9 +1,9 @@
 
 options(scipen=100)
 
-# Rscript random_FCC_AUC_ratio_meanCorrPermut_v2.R
+# Rscript random_FCC_AUC_ratio_meanCorrPermut_v3_either.R
 
-script_name <- "random_FCC_AUC_ratio_meanCorrPermut_v2.R"
+script_name <- "random_FCC_AUC_ratio_meanCorrPermut_v3_either.R"
 
 startTime <- Sys.time()
 
@@ -20,7 +20,7 @@ require(ggpubr)
 require(ggsci)
 registerDoMC(40)
 
-outFolder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT_V2")
+outFolder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT_V3_EITHER")
 dir.create(outFolder, recursive = TRUE)
 
 runFolder <- file.path("..", "v2_Yuanlong_Cancer_HiC_data_TAD_DA")
@@ -116,48 +116,73 @@ if(buildData) {
       geneList <- get(load(file.path(permutFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")))
       all(names(geneList) %in% de_dt$genes)
       
+      
+      g2t_file <- file.path(runFolder, hicds, "genes2tad", "all_genes_positions.txt")
+      g2t_dt <- read.delim(g2t_file, col.names=c("entrezID", "chromo", "start", "end", "region"), header=FALSE, stringsAsFactors = FALSE)
+      g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
+      stopifnot(!duplicated(g2t_dt$entrezID))
+      stopifnot(geneList %in% g2t_dt$entrezID)
+      g2t_dt <- g2t_dt[g2t_dt$entrezID %in% geneList,]
+      gene2tad <- setNames(g2t_dt$region, g2t_dt$entrezID)
+      stopifnot(geneList %in% g2t_dt$entrezID)
+      stopifnot(geneList %in% names(gene2tad))
+      
       rd_tad = names(permut_data)[1]
+      
+      stopifnot(setequal(names(permut_data), gene2tad))
+      
       
       ds_all_permut <- foreach(rd_tad = names(permut_data)) %dopar% {
         
-        # right FCC
-        tad_entrez_right <- permut_data[[paste0(rd_tad)]][["genes_right"]]
-        stopifnot(tad_entrez_right %in% geneList)
-        tad_entrez_right_de <- names(geneList)[geneList %in% tad_entrez_right]
-        stopifnot(!duplicated(tad_entrez_right_de))
-        tad_entrez_right_de <- unique(tad_entrez_right_de)
-        stopifnot(tad_entrez_right_de %in% de_dt$genes)
-        all_tad_right_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_right_de]
-        fcc_right <- get_fcc(all_tad_right_fc)
         
-        # left FCC
-        tad_entrez_left <- permut_data[[paste0(rd_tad)]][["genes_left"]]
-        stopifnot(tad_entrez_left %in% geneList)
-        tad_entrez_left_de <- names(geneList)[geneList %in% tad_entrez_left]
-        stopifnot(!duplicated(tad_entrez_left_de))
-        tad_entrez_left_de <- unique(tad_entrez_left_de)
-        stopifnot(tad_entrez_left_de %in% de_dt$genes)
-        all_tad_left_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_left_de]
+        # retrieve the TAD genes
+        minGenesByTAD <- 3
+        tad_genes <- names(gene2tad)[gene2tad == rd_tad]
+        stopifnot(length(tad_genes) >= minGenesByTAD)
         
-        fcc_left <- get_fcc(all_tad_left_fc)
+        stopifnot(setequal(tad_genes, permut_data[[paste0(rd_tad)]][["tad_genes"]]))
         
-        fcc_mean <- mean(c(fcc_right, fcc_left), na.rm=TRUE)
+        stopifnot(tad_genes %in% geneList)
+        tad_entrez_de <- names(geneList)[geneList %in% tad_genes]
+        stopifnot(!duplicated(tad_entrez_de))
+        tad_entrez_de <- unique(tad_entrez_de)
+        stopifnot(tad_entrez_de %in% de_dt$genes)
+        all_tad_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_de]
         
-        ratioDown_right <- get_ratioDown(all_tad_right_fc)
-        ratioFC_right <- get_ratioFC(all_tad_right_fc)
         
-        ratioDown_left <- get_ratioDown(all_tad_left_fc)
-        ratioFC_left <- get_ratioFC(all_tad_left_fc)
+        
+        # right or left FCC
+        tad_rl_entrez <- permut_data[[paste0(rd_tad)]][["genes"]]
+        stopifnot(tad_rl_entrez %in% geneList)
+        
+        stopifnot(!tad_rl_entrez %in% tad_genes)
+        
+        tad_rl_entrez_de <- names(geneList)[geneList %in% tad_rl_entrez]
+        stopifnot(!duplicated(tad_rl_entrez_de))
+        tad_rl_entrez_de <- unique(tad_rl_entrez_de)
+        stopifnot(tad_rl_entrez_de %in% de_dt$genes)
+        all_tad_rl_fc <- de_dt$logFC[de_dt$genes %in% tad_rl_entrez_de]
+        ## changed here in v3 !!!
+        all_tad_rl_fc <- c(all_tad_rl_fc, all_tad_fc)
+        
+        fcc <- get_fcc(all_tad_rl_fc)
+        
+
+
+        
+        fcc_mean <- mean(c(fcc), na.rm=TRUE)
+        
+        ratioDown <- get_ratioDown(all_tad_rl_fc)
+        ratioFC <- get_ratioFC(all_tad_rl_fc)
+        
+
         
 
         c(
-          fcc_meanRL = fcc_mean,
+          fcc_RorL = fcc_mean,
           
-          ratioDown_right=ratioDown_right,
-          ratioFC_right=ratioFC_right,
-          
-          ratioDown_left=ratioDown_left,
-          ratioFC_left=ratioFC_left
+          ratioDown=ratioDown,
+          ratioFC=ratioFC
           
         )
       } # end-foreach TAD
@@ -175,67 +200,69 @@ if(buildData) {
       obs_fcc_sorted <- sort(obs_fcc, decreasing = TRUE)
       
 
-      rd_fcc_meanRL <- unlist(lapply(ds_all_permut, function(x) x[["fcc_meanRL"]]))
-      stopifnot(length(rd_fcc_meanRL) == length(obs_fcc_sorted))
-      rd_fcc_meanRL <- na.omit(rd_fcc_meanRL)
+      rd_fcc_RorL <- unlist(lapply(ds_all_permut, function(x) x[["fcc_RorL"]]))
+      stopifnot(length(rd_fcc_RorL) == length(obs_fcc_sorted))
+      rd_fcc_RorL <- na.omit(rd_fcc_RorL)
       
-      rd_fcc_meanRL_hist <- hist(rd_fcc_meanRL, breaks=fcc_fract)$counts
-      names(rd_fcc_meanRL_hist) <- fcc_fract_names
-      rd_fcc_meanRL_ratio_hist <- rd_fcc_meanRL_hist/length(rd_fcc_meanRL)
-      stopifnot(sum(rd_fcc_meanRL_ratio_hist) == 1)
+      stopifnot(rd_fcc_RorL >= -1 & rd_fcc_RorL <= 1)
       
-      rd_fcc_meanRL_sorted <- sort(rd_fcc_meanRL, decreasing = TRUE)
+      rd_fcc_RorL_hist <- hist(rd_fcc_RorL, breaks=fcc_fract)$counts
+      names(rd_fcc_RorL_hist) <- fcc_fract_names
+      rd_fcc_RorL_ratio_hist <- rd_fcc_RorL_hist/length(rd_fcc_RorL)
+      stopifnot(sum(rd_fcc_RorL_ratio_hist) == 1)
       
-      nTot_meanRL <- min(c(length(rd_fcc_meanRL_sorted), length(obs_fcc_sorted)))
-      x_val_meanRL <- 1:nTot_meanRL
+      rd_fcc_RorL_sorted <- sort(rd_fcc_RorL, decreasing = TRUE)
+      
+      nTot_RorL <- min(c(length(rd_fcc_RorL_sorted), length(obs_fcc_sorted)))
+      x_val_RorL <- 1:nTot_RorL
       
       
-      cumsum_obs <- cumsum(abs(obs_fcc_sorted[1:nTot_meanRL])) # updated here 20.03.2020 ! should be abs !
-      cumsum_rd <- cumsum(abs(rd_fcc_meanRL_sorted[1:nTot_meanRL]))
+      cumsum_obs <- cumsum(abs(obs_fcc_sorted[1:nTot_RorL])) # updated here 20.03.2020 ! should be abs !
+      cumsum_rd <- cumsum(abs(rd_fcc_RorL_sorted[1:nTot_RorL]))
       
-      auc_obs_meanRL <- auc(x = x_val_meanRL, y = cumsum_obs)
-      auc_rd_meanRL <- auc(x = x_val_meanRL, y = cumsum_rd)
+      auc_obs_RorL <- auc(x = x_val_RorL, y = cumsum_obs)
+      auc_rd_RorL <- auc(x = x_val_RorL, y = cumsum_rd)
       
-      auc_ratio_rd_meanRL <- auc_obs_meanRL/auc_rd_meanRL
+      auc_ratio_rd_RorL <- auc_obs_RorL/auc_rd_RorL
       
       
       outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_cumsumFCC_obs_meanCorrPermut.", plotType))
       do.call(plotType, list(outFile, height=myHeight, width=myWidth))
       par(bty="L")
       plot(
-        x = 1:nTot_meanRL,
+        x = 1:nTot_RorL,
         y= cumsum_obs,
 	    xlab = "TADs ranked by decreasing FCC",
 		ylab = "Cumsum FCC",
         ylim = range(c(cumsum_obs, cumsum_rd)),
-        main=paste0("Cumsum FCC scores obs-meanCorr permut meanRL"),
+        main=paste0("Cumsum FCC scores obs-meanCorr permut RorL"),
         cex.lab=plotCex,
         cex.main=plotCex,
         cex.axis=plotCex,
         type="l"
       )
       lines(
-        x=1:nTot_meanRL,
+        x=1:nTot_RorL,
         y=cumsum_rd,
         col = cumsumCurve_col
       )
       mtext(side=3, text=paste0(hicds, " - ", exprds))
 		
-	  stopifnot(length(obs_fcc_sorted) == length(rd_fcc_meanRL_sorted))
+	  stopifnot(length(obs_fcc_sorted) == length(rd_fcc_RorL_sorted))
 		# same number -> sampled around TAD boundaries
 		# (but here I have 1 curve/dataset)
 		# what I could do: merge all curve and take 95-qtile from all permuts
 
       legend(
         "topleft",
-        #paste0("# obs. TADs = ",  length(obs_fcc_sorted), "\n# permut. TADs  = ", length(rd_fcc_meanRL_sorted)),
+        #paste0("# obs. TADs = ",  length(obs_fcc_sorted), "\n# permut. TADs  = ", length(rd_fcc_RorL_sorted)),
         paste0("# TADs = ",  length(obs_fcc_sorted)),
         bty="n"
       )
         legend(
           "bottomright",
           lty=c(-1, 1, 1),
-          legend=c(paste0("AUC ratio = ", round(auc_ratio_rd_meanRL, 2)), "obs.", "permut"),
+          legend=c(paste0("AUC ratio = ", round(auc_ratio_rd_RorL, 2)), "obs.", "permut"),
           col = c("black", "black", cumsumCurve_col),
           bty="n"
         )
@@ -246,8 +273,8 @@ if(buildData) {
       
       
       list(
-        auc_ratio_rd_meanRL = auc_ratio_rd_meanRL,
-        rd_fcc_meanRL_ratio_hist = rd_fcc_meanRL_ratio_hist
+        auc_ratio_rd_RorL = auc_ratio_rd_RorL,
+        rd_fcc_RorL_ratio_hist = rd_fcc_RorL_ratio_hist
       )
     } # end-foreach exprds
     names(all_exprds_fcc) <- all_exprds[[paste0(hicds)]]
@@ -269,15 +296,15 @@ if(buildData) {
 all_permut_fcc_ul <- unlist(all_permut_fcc, recursive = FALSE)
 
 # for each dataset -> 
-all_rd_types <- c("_meanRL")
+all_rd_types <- c("_RorL")
 rd_type=all_rd_types[1]
 
 for(rd_type in all_rd_types) {
   
   if(rd_type=="") {
-    fractBarTitle <- paste0(fractBarTitle_main, " (RandL)")
-    scatterTit <- paste0("PERMUT DATA (RandL)")
-    cmpTit <- "(RandL)"
+    fractBarTitle <- paste0(fractBarTitle_main, " (RorL)")
+    scatterTit <- paste0("PERMUT DATA (RorL)")
+    cmpTit <- "(RorL)"
   }else {
     fractBarTitle <- paste0(fractBarTitle_main, " (", gsub("_", "", rd_type), ")")  
     scatterTit <- paste0("PERMUT DATA (", gsub("_", "", rd_type), ")")

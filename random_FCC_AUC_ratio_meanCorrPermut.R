@@ -3,6 +3,8 @@ options(scipen=100)
 
 # Rscript random_FCC_AUC_ratio_meanCorrPermut.R
 
+stop("--- wrong script ! forgot cumsum !!! \n")
+
 script_name <- "random_FCC_AUC_ratio_meanCorrPermut.R"
 
 startTime <- Sys.time()

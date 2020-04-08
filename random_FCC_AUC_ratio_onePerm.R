@@ -1,15 +1,14 @@
 
 options(scipen=100)
 
-# Rscript random_FCC_AUC_ratio_meanCorrPermut_v2.R
-
-script_name <- "random_FCC_AUC_ratio_meanCorrPermut_v2.R"
+# Rscript random_FCC_AUC_ratio_onePerm.R
+script_name <- "random_FCC_AUC_ratio_onePerm.R"
 
 startTime <- Sys.time()
 
 cat("> START ", script_name, "\n")
 
-buildData <- TRUE
+buildData <- FALSE
 
 require(flux)
 require(foreach)
@@ -20,7 +19,7 @@ require(ggpubr)
 require(ggsci)
 registerDoMC(40)
 
-outFolder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT_V2")
+outFolder <- file.path("RANDOM_FCC_AUC_RATIO_ONEPERM")
 dir.create(outFolder, recursive = TRUE)
 
 runFolder <- file.path("..", "v2_Yuanlong_Cancer_HiC_data_TAD_DA")
@@ -32,25 +31,13 @@ legTitle <- "FCC ranges:"
 fractBarSubTitle <- "AUC ratios:\n"
 fractBarTitle_main <- "Fold-change concordance scores - PERMUT DATA"
 
-obs_auc_file <- file.path("BARPLOT_FCC_AUC_RATIO/all_dt.Rdata")
-obs_auc_dt <- get(load(obs_auc_file))
-
-
 ggsci_pal <- "lancet"
 ggsci_subpal <- ""
-
-cumsumCurve_col <- "darkgrey"
 
 
 source("../Cancer_HiC_data_TAD_DA/utils_fct.R")
 
 plotType <- "svg"
-
-myHeight <- 7
-myWidth <- 10
-myHeightGG <- 7
-myWidthGG <- 10
-
 source("../Yuanlong_Cancer_HiC_data_TAD_DA/subtype_cols.R")
 source("../FIGURES_V2_YUANLONG/settings.R")
 
@@ -101,153 +88,58 @@ get_ratioFC <- function(fc_vect) {
 }
 
 
-
+set.seed(742020)
 
 if(buildData) {
   all_permut_fcc <- foreach(hicds = all_hicds) %do%{
     all_exprds_fcc <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
       
       cat(paste0("... start ", hicds, " - ", exprds, "\n"))
+      permut_data <- get(load(file.path(permutFolder, hicds, exprds, script8_name, "prodSignedRatio_permDT.Rdata")))
+      # keep only 1 permut
+      i_keep <- sample(1:ncol(permut_data), size=1)
+      fcc_onePermut <- permut_data[,i_keep]
       
-      permut_data <- get(load(file.path(permutFolder, hicds, exprds, permut_script, "sample_around_TADs_sameNbr.Rdata")))
       
-      de_dt <- get(load(file.path(permutFolder, hicds, exprds, script1_name, "DE_topTable.Rdata")))
-      
-      geneList <- get(load(file.path(permutFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")))
-      all(names(geneList) %in% de_dt$genes)
-      
-      rd_tad = names(permut_data)[1]
-      
-      ds_all_permut <- foreach(rd_tad = names(permut_data)) %dopar% {
-        
-        # right FCC
-        tad_entrez_right <- permut_data[[paste0(rd_tad)]][["genes_right"]]
-        stopifnot(tad_entrez_right %in% geneList)
-        tad_entrez_right_de <- names(geneList)[geneList %in% tad_entrez_right]
-        stopifnot(!duplicated(tad_entrez_right_de))
-        tad_entrez_right_de <- unique(tad_entrez_right_de)
-        stopifnot(tad_entrez_right_de %in% de_dt$genes)
-        all_tad_right_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_right_de]
-        fcc_right <- get_fcc(all_tad_right_fc)
-        
-        # left FCC
-        tad_entrez_left <- permut_data[[paste0(rd_tad)]][["genes_left"]]
-        stopifnot(tad_entrez_left %in% geneList)
-        tad_entrez_left_de <- names(geneList)[geneList %in% tad_entrez_left]
-        stopifnot(!duplicated(tad_entrez_left_de))
-        tad_entrez_left_de <- unique(tad_entrez_left_de)
-        stopifnot(tad_entrez_left_de %in% de_dt$genes)
-        all_tad_left_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_left_de]
-        
-        fcc_left <- get_fcc(all_tad_left_fc)
-        
-        fcc_mean <- mean(c(fcc_right, fcc_left), na.rm=TRUE)
-        
-        ratioDown_right <- get_ratioDown(all_tad_right_fc)
-        ratioFC_right <- get_ratioFC(all_tad_right_fc)
-        
-        ratioDown_left <- get_ratioDown(all_tad_left_fc)
-        ratioFC_left <- get_ratioFC(all_tad_left_fc)
-        
+      names(fcc_onePermut) <- rownames(permut_data)
 
-        c(
-          fcc_meanRL = fcc_mean,
-          
-          ratioDown_right=ratioDown_right,
-          ratioFC_right=ratioFC_right,
-          
-          ratioDown_left=ratioDown_left,
-          ratioFC_left=ratioFC_left
-          
-        )
-      } # end-foreach TAD
-      names(ds_all_permut) <- names(permut_data)
-      outFile <- file.path(outFolder, hicds , exprds, "ds_all_permut.Rdata")
-      dir.create(dirname(outFile), recursive = TRUE)
-      save(ds_all_permut, file=outFile, version=2)
-      cat(paste0("... written: ", outFile, "\n"))
-      # ds_all_permut
-      
+            
       
       # compute the FCC AUC for the obs. data
-      
+
       obs_fcc <- get(load(file.path(permutFolder, hicds, exprds, script8_name, "all_obs_prodSignedRatio.Rdata")))
       obs_fcc_sorted <- sort(obs_fcc, decreasing = TRUE)
       
+      
+      rd_fcc_onePermut <- fcc_onePermut
+      stopifnot(length(rd_fcc_onePermut) == length(obs_fcc_sorted))
+      rd_fcc_onePermut <- na.omit(rd_fcc_onePermut)
+      
+      rd_fcc_onePermut_hist <- hist(rd_fcc_onePermut, breaks=fcc_fract)$counts
+      names(rd_fcc_onePermut_hist) <- fcc_fract_names
+      rd_fcc_onePermut_ratio_hist <- rd_fcc_onePermut_hist/length(rd_fcc_onePermut)
+      stopifnot(abs(sum(rd_fcc_onePermut_ratio_hist) - 1) < 10^-4)
+      
+      rd_fcc_onePermut_sorted <- sort(rd_fcc_onePermut, decreasing = TRUE)
+      
+      nTot_onePermut <- min(c(length(rd_fcc_onePermut_sorted), length(obs_fcc_sorted)))
+      x_val_onePermut <- 1:nTot_onePermut
+      
+      
+      cumsum_obs <- cumsum(abs(obs_fcc_sorted[1:nTot_onePermut])) # updated here 20.03.2020 ! should be abs !
+      cumsum_rd <- cumsum(abs(rd_fcc_onePermut_sorted[1:nTot_onePermut]))
+      
+      auc_obs_onePermut <- auc(x = x_val_onePermut, y = cumsum_obs)
+      auc_rd_onePermut <- auc(x = x_val_onePermut, y = cumsum_rd)
+      
+      auc_ratio_rd_onePermut <- auc_obs_onePermut/auc_rd_onePermut
+      
+      
 
-      rd_fcc_meanRL <- unlist(lapply(ds_all_permut, function(x) x[["fcc_meanRL"]]))
-      stopifnot(length(rd_fcc_meanRL) == length(obs_fcc_sorted))
-      rd_fcc_meanRL <- na.omit(rd_fcc_meanRL)
-      
-      rd_fcc_meanRL_hist <- hist(rd_fcc_meanRL, breaks=fcc_fract)$counts
-      names(rd_fcc_meanRL_hist) <- fcc_fract_names
-      rd_fcc_meanRL_ratio_hist <- rd_fcc_meanRL_hist/length(rd_fcc_meanRL)
-      stopifnot(sum(rd_fcc_meanRL_ratio_hist) == 1)
-      
-      rd_fcc_meanRL_sorted <- sort(rd_fcc_meanRL, decreasing = TRUE)
-      
-      nTot_meanRL <- min(c(length(rd_fcc_meanRL_sorted), length(obs_fcc_sorted)))
-      x_val_meanRL <- 1:nTot_meanRL
-      
-      
-      cumsum_obs <- cumsum(abs(obs_fcc_sorted[1:nTot_meanRL])) # updated here 20.03.2020 ! should be abs !
-      cumsum_rd <- cumsum(abs(rd_fcc_meanRL_sorted[1:nTot_meanRL]))
-      
-      auc_obs_meanRL <- auc(x = x_val_meanRL, y = cumsum_obs)
-      auc_rd_meanRL <- auc(x = x_val_meanRL, y = cumsum_rd)
-      
-      auc_ratio_rd_meanRL <- auc_obs_meanRL/auc_rd_meanRL
-      
-      
-      outFile <- file.path(outFolder, paste0(hicds, "_", exprds, "_cumsumFCC_obs_meanCorrPermut.", plotType))
-      do.call(plotType, list(outFile, height=myHeight, width=myWidth))
-      par(bty="L")
-      plot(
-        x = 1:nTot_meanRL,
-        y= cumsum_obs,
-	    xlab = "TADs ranked by decreasing FCC",
-		ylab = "Cumsum FCC",
-        ylim = range(c(cumsum_obs, cumsum_rd)),
-        main=paste0("Cumsum FCC scores obs-meanCorr permut meanRL"),
-        cex.lab=plotCex,
-        cex.main=plotCex,
-        cex.axis=plotCex,
-        type="l"
-      )
-      lines(
-        x=1:nTot_meanRL,
-        y=cumsum_rd,
-        col = cumsumCurve_col
-      )
-      mtext(side=3, text=paste0(hicds, " - ", exprds))
-		
-	  stopifnot(length(obs_fcc_sorted) == length(rd_fcc_meanRL_sorted))
-		# same number -> sampled around TAD boundaries
-		# (but here I have 1 curve/dataset)
-		# what I could do: merge all curve and take 95-qtile from all permuts
-
-      legend(
-        "topleft",
-        #paste0("# obs. TADs = ",  length(obs_fcc_sorted), "\n# permut. TADs  = ", length(rd_fcc_meanRL_sorted)),
-        paste0("# TADs = ",  length(obs_fcc_sorted)),
-        bty="n"
-      )
-        legend(
-          "bottomright",
-          lty=c(-1, 1, 1),
-          legend=c(paste0("AUC ratio = ", round(auc_ratio_rd_meanRL, 2)), "obs.", "permut"),
-          col = c("black", "black", cumsumCurve_col),
-          bty="n"
-        )
-
-      foo <- dev.off()
-      cat(paste0("... written: ", outFile, "\n"))
-      
-      
       
       list(
-        auc_ratio_rd_meanRL = auc_ratio_rd_meanRL,
-        rd_fcc_meanRL_ratio_hist = rd_fcc_meanRL_ratio_hist
+        auc_ratio_rd_onePermut = auc_ratio_rd_onePermut,
+        rd_fcc_onePermut_ratio_hist = rd_fcc_onePermut_ratio_hist
       )
     } # end-foreach exprds
     names(all_exprds_fcc) <- all_exprds[[paste0(hicds)]]
@@ -260,16 +152,18 @@ if(buildData) {
   cat(paste0("... written: ", outFile, "\n"))
   
 } else {
- outFile <- file.path(outFolder, "all_permut_fcc.Rdata")
+  # load("RANDOM_FCC_AUC_RATIO_ONEPERM/all_permut_fcc.Rdata")
+  outFile <- file.path(outFolder, "all_permut_fcc.Rdata")
   all_permut_fcc <- get(load(outFile))
 }
 
+obs_auc_dt <- get(load("BARPLOT_FCC_AUC_RATIO/all_dt.Rdata"))
 
 
 all_permut_fcc_ul <- unlist(all_permut_fcc, recursive = FALSE)
 
 # for each dataset -> 
-all_rd_types <- c("_meanRL")
+all_rd_types <- c("_onePermut")
 rd_type=all_rd_types[1]
 
 for(rd_type in all_rd_types) {
@@ -280,7 +174,7 @@ for(rd_type in all_rd_types) {
     cmpTit <- "(RandL)"
   }else {
     fractBarTitle <- paste0(fractBarTitle_main, " (", gsub("_", "", rd_type), ")")  
-    scatterTit <- paste0("PERMUT DATA (", gsub("_", "", rd_type), ")")
+    scatterTit <- paste0("PERMG2T (1 permut)")
     cmpTit <- paste0("(", gsub("_", "", rd_type), ")")
   }
   
@@ -515,7 +409,4 @@ for(rd_type in all_rd_types) {
 #######################################################################################################################################
 cat("***** DONE: ", script_name, "\n")
 cat(paste0(startTime, "\n", Sys.time(), "\n"))
-
-
-
 

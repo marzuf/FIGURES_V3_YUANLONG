@@ -1,9 +1,9 @@
 
 options(scipen=100)
 
-# Rscript random_FCC_AUC_ratio_meanCorrPermut_v2.R
+# Rscript random_FCC_AUC_ratio_meanCorrPermut_v3.R
 
-script_name <- "random_FCC_AUC_ratio_meanCorrPermut_v2.R"
+script_name <- "random_FCC_AUC_ratio_meanCorrPermut_v3.R"
 
 startTime <- Sys.time()
 
@@ -20,7 +20,7 @@ require(ggpubr)
 require(ggsci)
 registerDoMC(40)
 
-outFolder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT_V2")
+outFolder <- file.path("RANDOM_FCC_AUC_RATIO_MEANCORRPERMUT_V3")
 dir.create(outFolder, recursive = TRUE)
 
 runFolder <- file.path("..", "v2_Yuanlong_Cancer_HiC_data_TAD_DA")
@@ -101,13 +101,20 @@ get_ratioFC <- function(fc_vect) {
 }
 
 
+# CHANGE IN V3:
+# if I look right and left, to make "random" across boundary
+# I need to also include the tad genes ??!
 
+hicds="LG1_40kb"
+exprds="TCGAluad_norm_luad"
 
 if(buildData) {
   all_permut_fcc <- foreach(hicds = all_hicds) %do%{
     all_exprds_fcc <- foreach(exprds = all_exprds[[paste0(hicds)]]) %do% {
       
       cat(paste0("... start ", hicds, " - ", exprds, "\n"))
+      
+
       
       permut_data <- get(load(file.path(permutFolder, hicds, exprds, permut_script, "sample_around_TADs_sameNbr.Rdata")))
       
@@ -116,29 +123,60 @@ if(buildData) {
       geneList <- get(load(file.path(permutFolder, hicds, exprds, script0_name, "pipeline_geneList.Rdata")))
       all(names(geneList) %in% de_dt$genes)
       
+      g2t_file <- file.path(runFolder, hicds, "genes2tad", "all_genes_positions.txt")
+      g2t_dt <- read.delim(g2t_file, col.names=c("entrezID", "chromo", "start", "end", "region"), header=FALSE, stringsAsFactors = FALSE)
+      g2t_dt$entrezID <- as.character(g2t_dt$entrezID)
+      stopifnot(!duplicated(g2t_dt$entrezID))
+      stopifnot(geneList %in% g2t_dt$entrezID)
+      g2t_dt <- g2t_dt[g2t_dt$entrezID %in% geneList,]
+      gene2tad <- setNames(g2t_dt$region, g2t_dt$entrezID)
+      stopifnot(geneList %in% g2t_dt$entrezID)
+      stopifnot(geneList %in% names(gene2tad))
+      
       rd_tad = names(permut_data)[1]
+      
+      stopifnot(setequal(names(permut_data), gene2tad))
       
       ds_all_permut <- foreach(rd_tad = names(permut_data)) %dopar% {
         
+        # retrieve the TAD genes
+        minGenesByTAD <- 3
+        tad_genes <- names(gene2tad)[gene2tad == rd_tad]
+        stopifnot(length(tad_genes) >= minGenesByTAD)
+        
+        stopifnot(setequal(tad_genes, permut_data[[paste0(rd_tad)]][["tad_genes"]]))
+        
+        stopifnot(tad_genes %in% geneList)
+        tad_entrez_de <- names(geneList)[geneList %in% tad_genes]
+        stopifnot(!duplicated(tad_entrez_de))
+        tad_entrez_de <- unique(tad_entrez_de)
+        stopifnot(tad_entrez_de %in% de_dt$genes)
+        all_tad_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_de]
+        
         # right FCC
         tad_entrez_right <- permut_data[[paste0(rd_tad)]][["genes_right"]]
+        stopifnot(!tad_entrez_right %in% tad_genes)
         stopifnot(tad_entrez_right %in% geneList)
         tad_entrez_right_de <- names(geneList)[geneList %in% tad_entrez_right]
         stopifnot(!duplicated(tad_entrez_right_de))
         tad_entrez_right_de <- unique(tad_entrez_right_de)
         stopifnot(tad_entrez_right_de %in% de_dt$genes)
         all_tad_right_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_right_de]
+        ### !!! changed here in v3 -> also include the tad_fc !
+        all_tad_right_fc <- c(all_tad_right_fc, all_tad_fc)
         fcc_right <- get_fcc(all_tad_right_fc)
         
         # left FCC
         tad_entrez_left <- permut_data[[paste0(rd_tad)]][["genes_left"]]
+        stopifnot(!tad_entrez_left %in% tad_genes)
         stopifnot(tad_entrez_left %in% geneList)
         tad_entrez_left_de <- names(geneList)[geneList %in% tad_entrez_left]
         stopifnot(!duplicated(tad_entrez_left_de))
         tad_entrez_left_de <- unique(tad_entrez_left_de)
         stopifnot(tad_entrez_left_de %in% de_dt$genes)
         all_tad_left_fc <- de_dt$logFC[de_dt$genes %in% tad_entrez_left_de]
-        
+        ### !!! changed here in v3 -> also include the tad_fc !
+        all_tad_left_fc <- c(all_tad_left_fc, all_tad_fc)
         fcc_left <- get_fcc(all_tad_left_fc)
         
         fcc_mean <- mean(c(fcc_right, fcc_left), na.rm=TRUE)
@@ -179,10 +217,16 @@ if(buildData) {
       stopifnot(length(rd_fcc_meanRL) == length(obs_fcc_sorted))
       rd_fcc_meanRL <- na.omit(rd_fcc_meanRL)
       
+      stopifnot(rd_fcc_meanRL >= -1 & rd_fcc_meanRL <= 1)
       rd_fcc_meanRL_hist <- hist(rd_fcc_meanRL, breaks=fcc_fract)$counts
       names(rd_fcc_meanRL_hist) <- fcc_fract_names
       rd_fcc_meanRL_ratio_hist <- rd_fcc_meanRL_hist/length(rd_fcc_meanRL)
-      stopifnot(sum(rd_fcc_meanRL_ratio_hist) == 1)
+      
+      if(sum(rd_fcc_meanRL_ratio_hist) != 1) save(rd_fcc_meanRL_ratio_hist, file="rd_fcc_meanRL_ratio_hist.Rdata", version=2)
+      if(sum(rd_fcc_meanRL_ratio_hist) != 1) save(rd_fcc_meanRL, file="rd_fcc_meanRL.Rdata", version=2)
+      
+      
+      stopifnot(abs(sum(rd_fcc_meanRL_ratio_hist) - 1) <= 10^6)
       
       rd_fcc_meanRL_sorted <- sort(rd_fcc_meanRL, decreasing = TRUE)
       
